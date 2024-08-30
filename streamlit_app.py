@@ -21,18 +21,34 @@ def draw_lights(colors):
     return fig
 
 def load_leaderboard():
-    """Loads the leaderboard from the CSV file."""
+    """Loads the leaderboard from the CSV file with error handling."""
+    leaderboard = []
     if os.path.exists(SCORE_FILE):
-        with open(SCORE_FILE, 'r') as f:
-            reader = csv.reader(f)
-            return [(name, float(score)) for name, score in reader]
-    return []
+        try:
+            with open(SCORE_FILE, 'r') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    if len(row) == 2:
+                        name, score = row
+                        try:
+                            score = float(score)
+                            leaderboard.append((name, score))
+                        except ValueError:
+                            st.warning(f"Invalid score format for {name}: {score}")
+                    else:
+                        st.warning(f"Invalid row in CSV: {row}")
+        except Exception as e:
+            st.error(f"Error reading the leaderboard file: {e}")
+    return leaderboard
 
 def save_leaderboard(leaderboard):
-    """Saves the leaderboard to the CSV file."""
-    with open(SCORE_FILE, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerows(leaderboard)
+    """Saves the leaderboard to the CSV file with error handling."""
+    try:
+        with open(SCORE_FILE, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(leaderboard)
+    except Exception as e:
+        st.error(f"Error saving the leaderboard: {e}")
 
 def add_to_leaderboard(name, score):
     """Adds a new score to the leaderboard, sorts it, and saves to the CSV file."""
@@ -100,25 +116,25 @@ def main():
         st.session_state['ready_to_click'] = False
     
     fig = draw_lights(st.session_state['colors'])
-    fig_placeholder = st.pyplot(fig, clear_figure=True)
+    fig_placeholder = st.pyplot(fig)
 
     if st.button('Start Race'):
         st.session_state['colors'] = ['black'] * 5
         st.session_state['ready_to_click'] = False
         fig = draw_lights(st.session_state['colors'])
-        fig_placeholder.pyplot(fig, clear_figure=True)
+        fig_placeholder.pyplot(fig)
         # Lights turn red sequentially
         for i in range(5):
             delay = random.uniform(0.8, 1.0)  # Simulating random delay
             time.sleep(delay)
             st.session_state['colors'][i] = 'red'
             fig = draw_lights(st.session_state['colors'])
-            fig_placeholder.pyplot(fig, clear_figure=True)
+            fig_placeholder.pyplot(fig)
         # Lights turn off simultaneously
         time.sleep(random.uniform(0.8, 1.2))
         st.session_state['colors'] = ['black'] * 5
         fig = draw_lights(st.session_state['colors'])
-        fig_placeholder.pyplot(fig, clear_figure=True)
+        fig_placeholder.pyplot(fig)
         st.session_state['start_time'] = time.time()
         st.session_state['ready_to_click'] = True
 
