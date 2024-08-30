@@ -5,11 +5,11 @@ import random
 import csv
 import os
 
-# File to store the leaderboard
-LEADERBOARD_FILE = "leaderboard.csv"
+# File to store the scores
+SCORE_FILE = "score.csv"
 
 def draw_lights(colors):
-    """Draws F1 starting lights based on the specified colors."""
+    """Draws the lights with specified colors, ensuring they appear circular and with reduced padding."""
     fig, ax = plt.subplots(figsize=(6, 1))
     for i, color in enumerate(colors):
         circle = plt.Circle((i + 1, 0.5), 0.4, color=color)
@@ -22,15 +22,15 @@ def draw_lights(colors):
 
 def load_leaderboard():
     """Loads the leaderboard from the CSV file."""
-    if os.path.exists(LEADERBOARD_FILE):
-        with open(LEADERBOARD_FILE, 'r') as f:
+    if os.path.exists(SCORE_FILE):
+        with open(SCORE_FILE, 'r') as f:
             reader = csv.reader(f)
             return [(name, float(score)) for name, score in reader]
     return []
 
 def save_leaderboard(leaderboard):
     """Saves the leaderboard to the CSV file."""
-    with open(LEADERBOARD_FILE, 'w', newline='') as f:
+    with open(SCORE_FILE, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerows(leaderboard)
 
@@ -53,84 +53,112 @@ def display_leaderboard():
     else:
         st.write("No scores yet. Be the first to set a record!")
 
-def start_race():
-    st.session_state.colors = ['black'] * 5
-    st.session_state.ready_to_click = False
-    st.session_state.race_started = True
-
-def record_reaction():
-    if st.session_state.ready_to_click:
-        end_time = time.time()
-        reaction_time = end_time - st.session_state.start_time
-        st.session_state.ready_to_click = False
-        st.session_state.last_reaction_time = reaction_time
-    else:
-        st.session_state.false_start = True
-
-def submit_score(name):
-    if name:
-        st.session_state.leaderboard = add_to_leaderboard(name, st.session_state.last_reaction_time)
-        del st.session_state.last_reaction_time
-        st.session_state.score_submitted = True
-    else:
-        st.session_state.name_missing = True
-
 def main():
+    # Custom CSS to center the title and tweak other styling
+    st.markdown("""
+    <style>
+    .reportview-container .markdown-text-container {
+        text-align: center;
+    }
+    .reportview-container .fullScreenFrame > div {
+        display: flex;
+        justify-content: center;
+    }
+    h1 {
+        text-align: center;
+    }
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: white;
+        color: black;
+        text-align: center;
+    }
+    a:link, a:visited {
+        color: blue;
+        background-color: transparent;
+        text-decoration: none;
+    }
+    a:hover, a:active {
+        color: red;
+        background-color: transparent;
+        text-decoration: underline;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.title("Welcome to F1 Grand Prix!")
 
-    # Initialize session state variables
+    # Image at the top of the app
+    image_path = 'checkerd_flag.jpg'  # Adjust path as needed
+    st.image(image_path, use_column_width=True)
+
     if 'colors' not in st.session_state:
-        st.session_state.colors = ['black'] * 5
-        st.session_state.ready_to_click = False
-        st.session_state.race_started = False
-        st.session_state.false_start = False
-        st.session_state.score_submitted = False
-        st.session_state.name_missing = False
+        st.session_state['colors'] = ['black'] * 5
+        st.session_state['ready_to_click'] = False
+    
+    fig = draw_lights(st.session_state['colors'])
+    fig_placeholder = st.pyplot(fig, clear_figure=True)
 
-    fig = draw_lights(st.session_state.colors)
-    fig_placeholder = st.empty()
-    fig_placeholder.pyplot(fig)
-
-    if st.button('Start Race', on_click=start_race):
-        pass
-
-    if st.session_state.race_started:
+    if st.button('Start Race'):
+        st.session_state['colors'] = ['black'] * 5
+        st.session_state['ready_to_click'] = False
+        fig = draw_lights(st.session_state['colors'])
+        fig_placeholder.pyplot(fig, clear_figure=True)
+        # Lights turn red sequentially
         for i in range(5):
-            st.session_state.colors[i] = 'red'
-            fig = draw_lights(st.session_state.colors)
-            fig_placeholder.pyplot(fig)
-            time.sleep(random.uniform(0.8, 1.0))
-        
+            delay = random.uniform(0.8, 1.0)  # Simulating random delay
+            time.sleep(delay)
+            st.session_state['colors'][i] = 'red'
+            fig = draw_lights(st.session_state['colors'])
+            fig_placeholder.pyplot(fig, clear_figure=True)
+        # Lights turn off simultaneously
         time.sleep(random.uniform(0.8, 1.2))
-        st.session_state.colors = ['black'] * 5
-        fig = draw_lights(st.session_state.colors)
-        fig_placeholder.pyplot(fig)
-        st.session_state.start_time = time.time()
-        st.session_state.ready_to_click = True
-        st.session_state.race_started = False
+        st.session_state['colors'] = ['black'] * 5
+        fig = draw_lights(st.session_state['colors'])
+        fig_placeholder.pyplot(fig, clear_figure=True)
+        st.session_state['start_time'] = time.time()
+        st.session_state['ready_to_click'] = True
 
-    if st.button('GO!', on_click=record_reaction):
-        pass
+    st.markdown("""
+    **Instructions:**
+    - Once all lights turn off, hit the **GO!** button as soon as possible to simulate your reaction.
+    """)
 
-    if st.session_state.false_start:
-        st.error("False Start! Wait for all lights to turn off.")
-        st.session_state.false_start = False
+    if st.button('GO!'):
+        if 'ready_to_click' in st.session_state and st.session_state['ready_to_click']:
+            end_time = time.time()
+            reaction_time = end_time - st.session_state['start_time']
+            st.write(f"Your reaction time is {reaction_time:.3f} seconds.")
+            st.session_state['last_reaction_time'] = reaction_time
+            st.session_state['ready_to_click'] = False
+        else:
+            st.error("False Start!")
+            st.write("Time for a pit stop with the stewards!")
 
+    # Add name input and submit score button if there's a reaction time to submit
     if 'last_reaction_time' in st.session_state:
-        st.write(f"Your reaction time: {st.session_state.last_reaction_time:.3f} seconds")
         name = st.text_input("Enter your name for the leaderboard:", "")
-        if st.button("Submit Score", on_click=submit_score, args=(name,)):
-            pass
+        if st.button("Submit Score"):
+            if name:
+                add_to_leaderboard(name, st.session_state['last_reaction_time'])
+                st.success("Score submitted successfully!")
+                del st.session_state['last_reaction_time']
+            else:
+                st.warning("Please enter a name before submitting your score.")
 
-    if st.session_state.score_submitted:
-        st.success("Score submitted successfully!")
-        st.session_state.score_submitted = False
-
-    if st.session_state.name_missing:
-        st.warning("Please enter a name before submitting your score.")
-        st.session_state.name_missing = False
-
+    # Display the leaderboard
     display_leaderboard()
+
+    # Footer
+    footer = """
+    <div class='footer'>
+        <p>Created by <a href='https://www.linkedin.com/in/mohit-choudhary-87832882/' target='_blank'>Mohit Choudhary</a></p>
+    </div>
+    """
+    st.markdown(footer, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
