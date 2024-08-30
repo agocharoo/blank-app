@@ -2,6 +2,11 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import time
 import random
+import csv
+import os
+
+# File to store the leaderboard
+LEADERBOARD_FILE = "leaderboard.csv"
 
 def draw_lights(colors):
     """Draws F1 starting lights based on the specified colors."""
@@ -15,19 +20,35 @@ def draw_lights(colors):
     fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
     return fig
 
+def load_leaderboard():
+    """Loads the leaderboard from the CSV file."""
+    if os.path.exists(LEADERBOARD_FILE):
+        with open(LEADERBOARD_FILE, 'r') as f:
+            reader = csv.reader(f)
+            return [(name, float(score)) for name, score in reader]
+    return []
+
+def save_leaderboard(leaderboard):
+    """Saves the leaderboard to the CSV file."""
+    with open(LEADERBOARD_FILE, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(leaderboard)
+
 def add_to_leaderboard(name, score):
-    """Adds a new score to the leaderboard and sorts it, storing in session state."""
-    if 'leaderboard' not in st.session_state:
-        st.session_state.leaderboard = []
-    st.session_state.leaderboard.append((name, score))
+    """Adds a new score to the leaderboard, sorts it, and saves to the CSV file."""
+    leaderboard = load_leaderboard()
+    leaderboard.append((name, score))
     # Sort the leaderboard by score in ascending order and keep the top 10 entries
-    st.session_state.leaderboard = sorted(st.session_state.leaderboard, key=lambda x: x[1])[:10]
+    leaderboard = sorted(leaderboard, key=lambda x: x[1])[:10]
+    save_leaderboard(leaderboard)
+    return leaderboard
 
 def display_leaderboard():
     """Displays the leaderboard."""
-    if 'leaderboard' in st.session_state and st.session_state.leaderboard:
+    leaderboard = load_leaderboard()
+    if leaderboard:
         st.write("## Leaderboard")
-        for idx, (name, score) in enumerate(st.session_state.leaderboard, start=1):
+        for idx, (name, score) in enumerate(leaderboard, start=1):
             st.write(f"{idx}. {name} - {score:.3f} seconds")
     else:
         st.write("No scores yet. Be the first to set a record!")
@@ -48,7 +69,7 @@ def record_reaction():
 
 def submit_score(name):
     if name:
-        add_to_leaderboard(name, st.session_state.last_reaction_time)
+        st.session_state.leaderboard = add_to_leaderboard(name, st.session_state.last_reaction_time)
         del st.session_state.last_reaction_time
         st.session_state.score_submitted = True
     else:
