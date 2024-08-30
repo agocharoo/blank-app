@@ -6,6 +6,7 @@ import pandas as pd
 import os
 
 def draw_lights(colors):
+    """Draws F1 starting lights based on the specified colors."""
     fig, ax = plt.subplots(figsize=(6, 1))
     for i, color in enumerate(colors):
         circle = plt.Circle((i + 1, 0.5), 0.4, color=color)
@@ -17,12 +18,14 @@ def draw_lights(colors):
     return fig
 
 def read_scores():
+    """Reads scores from a CSV file, or creates an empty DataFrame if file does not exist."""
     if os.path.exists('score.csv'):
         return pd.read_csv('score.csv')
     else:
         return pd.DataFrame(columns=['Name', 'Score'])
 
 def update_leaderboard(new_score, name='XYZ'):
+    """Updates the leaderboard CSV with a new score, keeping only the top 10 scores."""
     df = read_scores()
     df = df.append({'Name': name, 'Score': new_score}, ignore_index=True)
     df = df.sort_values('Score').reset_index(drop=True)
@@ -30,6 +33,7 @@ def update_leaderboard(new_score, name='XYZ'):
     df.to_csv('score.csv', index=False)
 
 def get_rank(new_score):
+    """Determines the rank of a new score within the existing scores."""
     df = read_scores()
     df = df.append({'Name': 'current_user', 'Score': new_score}, ignore_index=True)
     df = df.sort_values('Score').reset_index(drop=True)
@@ -38,9 +42,38 @@ def get_rank(new_score):
 def main():
     st.markdown("""
     <style>
-    ... (existing styles) ...
+    .reportview-container .markdown-text-container {
+        text-align: center;
+    }
+    .reportview-container .fullScreenFrame > div {
+        display: flex;
+        justify-content: center;
+    }
+    h1 {
+        text-align: center;
+    }
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: white;
+        color: black;
+        text-align: center;
+    }
+    a:link, a:visited {
+        color: blue;
+        background-color: transparent;
+        text-decoration: none;
+    }
+    a:hover, a:active {
+        color: red;
+        background-color: transparent;
+        text-decoration: underline;
+    }
     </style>
     """, unsafe_allow_html=True)
+
     st.title("Welcome to F1 Grand Prix!")
     image_path = 'checkerd_flag.jpg'
     st.image(image_path, use_column_width=True)
@@ -50,15 +83,30 @@ def main():
         st.session_state['ready_to_click'] = False
 
     fig = draw_lights(st.session_state['colors'])
-    fig_placeholder = st.pyplot(fig, clear_figure=True)
+    fig_placeholder = st.pyplot(fig)
 
     if st.button('Start Race'):
-        ... (existing race logic) ...
+        st.session_state['colors'] = ['black'] * 5
+        st.session_state['ready_to_click'] = False
+        fig = draw_lights(st.session_state['colors'])
+        fig_placeholder.pyplot(fig)
+        for i in range(5):
+            delay = random.uniform(0.8, 1.0)  # Simulating random delay
+            time.sleep(delay)
+            st.session_state['colors'][i] = 'red'
+            fig = draw_lights(st.session_state['colors'])
+            fig_placeholder.pyplot(fig)
+        time.sleep(random.uniform(0.8, 1.2))
+        st.session_state['colors'] = ['black'] * 5
+        fig = draw_lights(st.session_state['colors'])
+        fig_placeholder.pyplot(fig)
+        st.session_state['start_time'] = time.time()
+        st.session_state['ready_to_click'] = True
 
     st.markdown("**Instructions:** Once all lights turn off, hit the **GO!** button as soon as possible.")
 
     if st.button('GO!'):
-        if 'ready_to_click' in st.session_state and st.session_state['ready_to_click']:
+        if st.session_state['ready_to_click']:
             end_time = time.time()
             reaction_time = end_time - st.session_state['start_time']
             rank, total_users = get_rank(reaction_time)
@@ -75,7 +123,6 @@ def main():
             st.error("False Start!")
             st.write("Time for a pit stop with the stewards!")
 
-    # Footer
     footer = """
     <div class='footer'>
         <p>Created by <a href='https://www.linkedin.com/in/mohit-choudhary-87832882/' target='_blank'>Mohit Choudhary</a></p>
