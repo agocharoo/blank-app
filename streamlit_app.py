@@ -32,6 +32,28 @@ def display_leaderboard():
     else:
         st.write("No scores yet. Be the first to set a record!")
 
+def start_race():
+    st.session_state.colors = ['black'] * 5
+    st.session_state.ready_to_click = False
+    st.session_state.race_started = True
+
+def record_reaction():
+    if st.session_state.ready_to_click:
+        end_time = time.time()
+        reaction_time = end_time - st.session_state.start_time
+        st.session_state.ready_to_click = False
+        st.session_state.last_reaction_time = reaction_time
+    else:
+        st.session_state.false_start = True
+
+def submit_score(name):
+    if name:
+        add_to_leaderboard(name, st.session_state.last_reaction_time)
+        del st.session_state.last_reaction_time
+        st.session_state.score_submitted = True
+    else:
+        st.session_state.name_missing = True
+
 def main():
     st.title("Welcome to F1 Grand Prix!")
 
@@ -39,51 +61,53 @@ def main():
     if 'colors' not in st.session_state:
         st.session_state.colors = ['black'] * 5
         st.session_state.ready_to_click = False
-    if 'leaderboard' not in st.session_state:
-        st.session_state.leaderboard = []
+        st.session_state.race_started = False
+        st.session_state.false_start = False
+        st.session_state.score_submitted = False
+        st.session_state.name_missing = False
 
     fig = draw_lights(st.session_state.colors)
-    fig_placeholder = st.pyplot(fig)
+    fig_placeholder = st.empty()
+    fig_placeholder.pyplot(fig)
 
-    if st.button('Start Race'):
-        st.session_state.colors = ['black'] * 5
-        st.session_state.ready_to_click = False
-        fig = draw_lights(st.session_state.colors)
-        fig_placeholder.pyplot(fig)
+    if st.button('Start Race', on_click=start_race):
+        pass
+
+    if st.session_state.race_started:
         for i in range(5):
-            delay = random.uniform(0.8, 1.0)
-            time.sleep(delay)
             st.session_state.colors[i] = 'red'
             fig = draw_lights(st.session_state.colors)
             fig_placeholder.pyplot(fig)
+            time.sleep(random.uniform(0.8, 1.0))
+        
         time.sleep(random.uniform(0.8, 1.2))
         st.session_state.colors = ['black'] * 5
         fig = draw_lights(st.session_state.colors)
         fig_placeholder.pyplot(fig)
         st.session_state.start_time = time.time()
         st.session_state.ready_to_click = True
-        st.experimental_rerun()
+        st.session_state.race_started = False
 
-    if st.button('GO!'):
-        if st.session_state.ready_to_click:
-            end_time = time.time()
-            reaction_time = end_time - st.session_state.start_time
-            st.session_state.ready_to_click = False
-            st.session_state.last_reaction_time = reaction_time
-            st.experimental_rerun()
-        else:
-            st.error("False Start! Wait for all lights to turn off.")
+    if st.button('GO!', on_click=record_reaction):
+        pass
+
+    if st.session_state.false_start:
+        st.error("False Start! Wait for all lights to turn off.")
+        st.session_state.false_start = False
 
     if 'last_reaction_time' in st.session_state:
         st.write(f"Your reaction time: {st.session_state.last_reaction_time:.3f} seconds")
         name = st.text_input("Enter your name for the leaderboard:", "")
-        if st.button("Submit Score"):
-            if name:
-                add_to_leaderboard(name, st.session_state.last_reaction_time)
-                del st.session_state.last_reaction_time
-                st.experimental_rerun()
-            else:
-                st.warning("Please enter a name before submitting your score.")
+        if st.button("Submit Score", on_click=submit_score, args=(name,)):
+            pass
+
+    if st.session_state.score_submitted:
+        st.success("Score submitted successfully!")
+        st.session_state.score_submitted = False
+
+    if st.session_state.name_missing:
+        st.warning("Please enter a name before submitting your score.")
+        st.session_state.name_missing = False
 
     display_leaderboard()
 
