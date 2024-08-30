@@ -16,14 +16,15 @@ def draw_lights(colors):
     return fig
 
 def add_to_leaderboard(name, score):
-    """Adds a new score to the leaderboard and sorts it."""
-    if 'leaderboard' not in st.session_state:
+    """Adds a new score to the leaderboard and sorts it, storing in session state."""
+    if 'leaderboard' not in st.session_state or not st.session_state.leaderboard:
         st.session_state.leaderboard = []
     st.session_state.leaderboard.append((name, score))
+    # Sort the leaderboard by score in ascending order and keep the top 10 entries
     st.session_state.leaderboard = sorted(st.session_state.leaderboard, key=lambda x: x[1])[:10]
 
 def display_leaderboard():
-    """Displays the top 10 scores from the leaderboard."""
+    """Displays the leaderboard."""
     if 'leaderboard' in st.session_state and st.session_state.leaderboard:
         st.write("## Leaderboard")
         for idx, (name, score) in enumerate(st.session_state.leaderboard, start=1):
@@ -32,90 +33,44 @@ def display_leaderboard():
         st.write("No scores yet. Be the first to set a record!")
 
 def main():
-    st.markdown("""
-    <style>
-    .reportview-container .markdown-text-container {
-        text-align: center;
-    }
-    .reportview-container .fullScreenFrame > div {
-        display: flex;
-        justify-content: center;
-    }
-    h1 {
-        text-align: center;
-    }
-    .footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: white;
-        color: black;
-        text-align: center;
-    }
-    a:link, a:visited {
-        color: blue;
-        background-color: transparent;
-        text-decoration: none;
-    }
-    a:hover, a:active {
-        color: red;
-        background-color: transparent;
-        text-decoration: underline;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     st.title("Welcome to F1 Grand Prix!")
-    image_path = 'checkerd_flag.jpg'
-    st.image(image_path, use_column_width=True)
-
     if 'colors' not in st.session_state:
-        st.session_state['colors'] = ['black'] * 5
-        st.session_state['ready_to_click'] = False
+        st.session_state.colors = ['black'] * 5
+        st.session_state.ready_to_click = False
 
-    fig = draw_lights(st.session_state['colors'])
+    fig = draw_lights(st.session_state.colors)
     fig_placeholder = st.pyplot(fig)
 
     if st.button('Start Race'):
-        st.session_state['colors'] = ['black'] * 5
-        st.session_state['ready_to_click'] = False
-        fig = draw_lights(st.session_state['colors'])
+        st.session_state.colors = ['black'] * 5
+        st.session_state.ready_to_click = False
+        fig = draw_lights(st.session_state.colors)
         fig_placeholder.pyplot(fig)
         for i in range(5):
             delay = random.uniform(0.8, 1.0)
             time.sleep(delay)
-            st.session_state['colors'][i] = 'red'
-            fig = draw_lights(st.session_state['colors'])
+            st.session_state.colors[i] = 'red'
+            fig = draw_lights(st.session_state.colors)
             fig_placeholder.pyplot(fig)
         time.sleep(random.uniform(0.8, 1.2))
-        st.session_state['colors'] = ['black'] * 5
-        fig = draw_lights(st.session_state['colors'])
+        st.session_state.colors = ['black'] * 5
+        fig = draw_lights(st.session_state.colors)
         fig_placeholder.pyplot(fig)
-        st.session_state['start_time'] = time.time()
-        st.session_state['ready_to_click'] = True
-
-    st.markdown("**Instructions:** Once all lights turn off, hit the **GO!** button as soon as possible.")
+        st.session_state.start_time = time.time()
+        st.session_state.ready_to_click = True
 
     if st.button('GO!'):
-        if st.session_state['ready_to_click']:
+        if st.session_state.ready_to_click:
             end_time = time.time()
-            reaction_time = end_time - st.session_state['start_time']
-            st.session_state['ready_to_click'] = False
+            reaction_time = end_time - st.session_state.start_time
+            st.session_state.ready_to_click = False
             name = st.text_input("Congratulations! Enter your name for the leaderboard:", "")
-            if name:
+            if name:  # Ensure name is entered before updating the leaderboard
                 add_to_leaderboard(name, reaction_time)
-            display_leaderboard()
         else:
-            st.error("False Start!")
-            st.write("Time for a pit stop with the stewards!")
+            st.error("False Start! Wait for all lights to turn off.")
 
-    footer = """
-    <div class='footer'>
-        <p>Created by <a href='https://www.linkedin.com/in/mohit-choudhary-87832882/' target='_blank'>Mohit Choudhary</a></p>
-    </div>
-    """
-    st.markdown(footer, unsafe_allow_html=True)
+    display_leaderboard()  # Display the leaderboard regardless of other actions
 
 if __name__ == "__main__":
     main()
