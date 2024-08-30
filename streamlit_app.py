@@ -44,7 +44,35 @@ def get_rank(new_score):
 def main():
     st.markdown("""
     <style>
-    ... (existing styles) ...
+    .reportview-container .markdown-text-container {
+        text-align: center;
+    }
+    .reportview-container .fullScreenFrame > div {
+        display: flex;
+        justify-content: center;
+    }
+    h1 {
+        text-align: center;
+    }
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: white;
+        color: black;
+        text-align: center;
+    }
+    a:link, a:visited {
+        color: blue;
+        background-color: transparent;
+        text-decoration: none;
+    }
+    a:hover, a:active {
+        color: red;
+        background-color: transparent;
+        text-decoration: underline;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -65,7 +93,7 @@ def main():
         fig = draw_lights(st.session_state['colors'])
         fig_placeholder.pyplot(fig)
         for i in range(5):
-            delay = random.uniform(0.8, 1.0)  # Simulating random delay
+            delay = random.uniform(0.8, 1.0)
             time.sleep(delay)
             st.session_state['colors'][i] = 'red'
             fig = draw_lights(st.session_state['colors'])
@@ -92,10 +120,17 @@ def main():
             else:
                 update_leaderboard(reaction_time)
                 st.write(f"Your reaction time is {reaction_time:.3f} seconds. Your rank is {rank} out of {total_users} users.")
-            st.table(read_scores()[['Name', 'Score']])
         else:
             st.error("False Start!")
             st.write("Time for a pit stop with the stewards!")
+
+    # Always display the leaderboard
+    leaderboard = read_scores()
+    if not leaderboard.empty:
+        st.write("## Leaderboard")
+        st.table(leaderboard[['Name', 'Score']])
+    else:
+        st.write("No scores yet. Be the first to set a record!")
 
     footer = """
     <div class='footer'>
