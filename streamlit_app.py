@@ -27,7 +27,8 @@ def read_scores():
 def update_leaderboard(new_score, name='XYZ'):
     """Updates the leaderboard CSV with a new score, keeping only the top 10 scores."""
     df = read_scores()
-    df = df.append({'Name': name, 'Score': new_score}, ignore_index=True)
+    new_row = pd.DataFrame({'Name': [name], 'Score': [new_score]})
+    df = pd.concat([df, new_row], ignore_index=True)
     df = df.sort_values('Score').reset_index(drop=True)
     df = df.head(10)  # Keep only the top 10 scores
     df.to_csv('score.csv', index=False)
@@ -35,42 +36,15 @@ def update_leaderboard(new_score, name='XYZ'):
 def get_rank(new_score):
     """Determines the rank of a new score within the existing scores."""
     df = read_scores()
-    df = df.append({'Name': 'current_user', 'Score': new_score}, ignore_index=True)
+    new_row = pd.DataFrame({'Name': ['current_user'], 'Score': [new_score]})
+    df = pd.concat([df, new_row], ignore_index=True)
     df = df.sort_values('Score').reset_index(drop=True)
     return df[df['Name'] == 'current_user'].index[0] + 1, df.shape[0]
 
 def main():
     st.markdown("""
     <style>
-    .reportview-container .markdown-text-container {
-        text-align: center;
-    }
-    .reportview-container .fullScreenFrame > div {
-        display: flex;
-        justify-content: center;
-    }
-    h1 {
-        text-align: center;
-    }
-    .footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: white;
-        color: black;
-        text-align: center;
-    }
-    a:link, a:visited {
-        color: blue;
-        background-color: transparent;
-        text-decoration: none;
-    }
-    a:hover, a:active {
-        color: red;
-        background-color: transparent;
-        text-decoration: underline;
-    }
+    ... (existing styles) ...
     </style>
     """, unsafe_allow_html=True)
 
