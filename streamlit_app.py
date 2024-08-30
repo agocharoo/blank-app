@@ -17,7 +17,7 @@ def draw_lights(colors):
 
 def add_to_leaderboard(name, score):
     """Adds a new score to the leaderboard and sorts it, storing in session state."""
-    if 'leaderboard' not in st.session_state or not st.session_state.leaderboard:
+    if 'leaderboard' not in st.session_state:
         st.session_state.leaderboard = []
     st.session_state.leaderboard.append((name, score))
     # Sort the leaderboard by score in ascending order and keep the top 10 entries
@@ -34,9 +34,13 @@ def display_leaderboard():
 
 def main():
     st.title("Welcome to F1 Grand Prix!")
+
+    # Initialize session state variables
     if 'colors' not in st.session_state:
         st.session_state.colors = ['black'] * 5
         st.session_state.ready_to_click = False
+    if 'leaderboard' not in st.session_state:
+        st.session_state.leaderboard = []
 
     fig = draw_lights(st.session_state.colors)
     fig_placeholder = st.pyplot(fig)
@@ -58,19 +62,30 @@ def main():
         fig_placeholder.pyplot(fig)
         st.session_state.start_time = time.time()
         st.session_state.ready_to_click = True
+        st.experimental_rerun()
 
     if st.button('GO!'):
         if st.session_state.ready_to_click:
             end_time = time.time()
             reaction_time = end_time - st.session_state.start_time
             st.session_state.ready_to_click = False
-            name = st.text_input("Congratulations! Enter your name for the leaderboard:", "")
-            if name:  # Ensure name is entered before updating the leaderboard
-                add_to_leaderboard(name, reaction_time)
+            st.session_state.last_reaction_time = reaction_time
+            st.experimental_rerun()
         else:
             st.error("False Start! Wait for all lights to turn off.")
 
-    display_leaderboard()  # Display the leaderboard regardless of other actions
+    if 'last_reaction_time' in st.session_state:
+        st.write(f"Your reaction time: {st.session_state.last_reaction_time:.3f} seconds")
+        name = st.text_input("Enter your name for the leaderboard:", "")
+        if st.button("Submit Score"):
+            if name:
+                add_to_leaderboard(name, st.session_state.last_reaction_time)
+                del st.session_state.last_reaction_time
+                st.experimental_rerun()
+            else:
+                st.warning("Please enter a name before submitting your score.")
+
+    display_leaderboard()
 
 if __name__ == "__main__":
     main()
