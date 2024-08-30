@@ -2,8 +2,6 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import time
 import random
-import pandas as pd
-import os
 
 def draw_lights(colors):
     """Draws F1 starting lights based on the specified colors."""
@@ -17,29 +15,21 @@ def draw_lights(colors):
     fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
     return fig
 
-def read_scores():
-    """Reads scores from a CSV file, or creates an empty DataFrame if file does not exist."""
-    if os.path.exists('score.csv'):
-        return pd.read_csv('score.csv')
+def add_to_leaderboard(name, score):
+    """Adds a new score to the leaderboard and sorts it."""
+    if 'leaderboard' not in st.session_state:
+        st.session_state.leaderboard = []
+    st.session_state.leaderboard.append((name, score))
+    st.session_state.leaderboard = sorted(st.session_state.leaderboard, key=lambda x: x[1])[:10]
+
+def display_leaderboard():
+    """Displays the top 10 scores from the leaderboard."""
+    if 'leaderboard' in st.session_state and st.session_state.leaderboard:
+        st.write("## Leaderboard")
+        for idx, (name, score) in enumerate(st.session_state.leaderboard, start=1):
+            st.write(f"{idx}. {name} - {score:.3f} seconds")
     else:
-        return pd.DataFrame(columns=['Name', 'Score'])
-
-def update_leaderboard(new_score, name='XYZ'):
-    """Updates the leaderboard CSV with a new score, keeping only the top 10 scores."""
-    df = read_scores()
-    new_row = pd.DataFrame({'Name': [name], 'Score': [new_score]})
-    df = pd.concat([df, new_row], ignore_index=True)
-    df = df.sort_values('Score').reset_index(drop=True)
-    df = df.head(10)  # Keep only the top 10 scores
-    df.to_csv('score.csv', index=False)
-
-def get_rank(new_score):
-    """Determines the rank of a new score within the existing scores."""
-    df = read_scores()
-    new_row = pd.DataFrame({'Name': ['current_user'], 'Score': [new_score]})
-    df = pd.concat([df, new_row], ignore_index=True)
-    df = df.sort_values('Score').reset_index(drop=True)
-    return df[df['Name'] == 'current_user'].index[0] + 1, df.shape[0]
+        st.write("No scores yet. Be the first to set a record!")
 
 def main():
     st.markdown("""
@@ -111,26 +101,14 @@ def main():
         if st.session_state['ready_to_click']:
             end_time = time.time()
             reaction_time = end_time - st.session_state['start_time']
-            rank, total_users = get_rank(reaction_time)
-            if rank <= 10:
-                name = st.text_input("Congratulations! Enter your name for the leaderboard:", "")
-                if name:
-                    update_leaderboard(reaction_time, name)
-                    st.write(f"Your reaction time is {reaction_time:.3f} seconds. Your rank is {rank}!")
-            else:
-                update_leaderboard(reaction_time)
-                st.write(f"Your reaction time is {reaction_time:.3f} seconds. Your rank is {rank} out of {total_users} users.")
+            st.session_state['ready_to_click'] = False
+            name = st.text_input("Congratulations! Enter your name for the leaderboard:", "")
+            if name:
+                add_to_leaderboard(name, reaction_time)
+            display_leaderboard()
         else:
             st.error("False Start!")
             st.write("Time for a pit stop with the stewards!")
-
-    # Always display the leaderboard
-    leaderboard = read_scores()
-    if not leaderboard.empty:
-        st.write("## Leaderboard")
-        st.table(leaderboard[['Name', 'Score']])
-    else:
-        st.write("No scores yet. Be the first to set a record!")
 
     footer = """
     <div class='footer'>
